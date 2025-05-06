@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'comment_page.dart';
 import 'profile_page.dart';
+import 'make_post_page.dart';
+import 'post_repository.dart';
+import 'user_repository.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = UserRepository.currentUser;
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -36,65 +40,181 @@ class HomePage extends StatelessWidget {
                 },
                 child: CircleAvatar(
                   radius: 18,
-                  backgroundImage: AssetImage('assets/images/profile.png'),
+                  backgroundImage: AssetImage(currentUser['avatar']!),
                 ),
               ),
             ),
           ],
           automaticallyImplyLeading: false,
         ),
-        body: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            _PostItem(
-              avatar: 'assets/images/profile.png',
-              username: 'user12345',
-              time: '12h',
-              content: 'alhamdulillah yah',
-              likeCount: 28,
-              commentCount: 5,
-              shareCount: 21,
-              likedBy: 'user123 and user333',
-              isLiked: true,
-              showThread: true,
-            ),
-            _PostItem(
-              avatar: 'assets/images/profile.png',
-              username: 'User5234',
-              time: '3h',
-              content: 'Cara agar kuat mental gimana y?',
-              likeCount: 46,
-              commentCount: 18,
-              shareCount: 363,
-              likedBy: 'User43543',
-              isLiked: true,
-            ),
-            _PostItem(
-              avatar: 'assets/images/profile.png',
-              username: 'User2352',
-              time: '10h',
-              content: 'kalian pernah ga takut kehilangan barang yg diimpikan?',
-              likeCount: 1906,
-              commentCount: 1249,
-              shareCount: 7461,
-              likedBy: 'User43543',
-              isLiked: true,
-            ),
-            _PostItem(
-              avatar: 'assets/images/profile.png',
-              username: 'User24356',
-              time: '3h',
-              content: 'pertama kali pake mind min',
-              likeCount: 46,
-              commentCount: 18,
-              shareCount: 363,
-              likedBy: 'User43543',
-              isLiked: true,
-            ),
-          ],
+        body: ValueListenableBuilder<List<Map<String, dynamic>>>(
+          valueListenable: PostRepository.posts,
+          builder: (context, posts, _) {
+            return ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final p = posts[index];
+                final isMine = p['username'] == currentUser['username'];
+                return _PostItem(
+                  index: index,
+                  avatar: p['avatar'],
+                  name: p['name'],
+                  username: p['username'],
+                  time: p['time'],
+                  content: p['content'],
+                  media: List<String>.from(p['media'] ?? []),
+                  likeCount: p['likeCount'],
+                  commentCount: p['commentCount'],
+                  shareCount: p['shareCount'],
+                  likedBy: p['likedBy'],
+                  isLiked: p['isLiked'],
+                  showThread: p['showThread'],
+                  onLike: () => PostRepository.toggleLike(index),
+                  onDelete:
+                      isMine ? () => PostRepository.deletePost(index) : null,
+                  onEdit:
+                      isMine
+                          ? () async {
+                            final controller = TextEditingController(
+                              text: p['content'],
+                            );
+                            List<String> tempMedia = List<String>.from(
+                              p['media'] ?? [],
+                            );
+                            final result = await showDialog<
+                              Map<String, dynamic>
+                            >(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: const Text('Edit Post'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TextField(
+                                        controller: controller,
+                                        maxLines: 3,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 56,
+                                        child: ListView(
+                                          scrollDirection: Axis.horizontal,
+                                          children: [
+                                            ...[
+                                              'assets/images/orang.png',
+                                              'assets/images/tangan.png',
+                                            ].map(
+                                              (m) => GestureDetector(
+                                                onTap: () {
+                                                  if (tempMedia.contains(m)) {
+                                                    tempMedia.remove(m);
+                                                  } else {
+                                                    tempMedia.add(m);
+                                                  }
+                                                  (context as Element)
+                                                      .markNeedsBuild();
+                                                },
+                                                child: Container(
+                                                  margin: const EdgeInsets.only(
+                                                    right: 8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                      color:
+                                                          tempMedia.contains(m)
+                                                              ? const Color(
+                                                                0xFF7C3AED,
+                                                              )
+                                                              : Colors
+                                                                  .grey
+                                                                  .shade300,
+                                                      width: 2,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  child: ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                    child: Image.asset(
+                                                      m,
+                                                      width: 56,
+                                                      height: 56,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Batal'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pop(context, {
+                                          'content': controller.text,
+                                          'media': tempMedia,
+                                        });
+                                      },
+                                      child: const Text('Simpan'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            if (result != null) {
+                              PostRepository.editPost(
+                                index,
+                                result['content'],
+                                List<String>.from(result['media']),
+                              );
+                            }
+                          }
+                          : null,
+                );
+              },
+            );
+          },
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => MakePostPage(
+                      onPost: ({
+                        required content,
+                        required avatar,
+                        required name,
+                        required username,
+                        required media,
+                      }) {
+                        PostRepository.addPost(
+                          content: content,
+                          avatar: avatar,
+                          name: name,
+                          username: username,
+                          media: media,
+                        );
+                      },
+                    ),
+              ),
+            );
+          },
           backgroundColor: const Color(0xFF7C3AED),
           child: const Icon(Icons.edit, color: Colors.white),
         ),
@@ -129,28 +249,40 @@ class HomePage extends StatelessWidget {
 }
 
 class _PostItem extends StatelessWidget {
+  final int index;
   final String avatar;
+  final String name;
   final String username;
   final String time;
   final String content;
+  final List<String> media;
   final int likeCount;
   final int commentCount;
   final int shareCount;
   final String likedBy;
   final bool isLiked;
   final bool showThread;
+  final VoidCallback? onLike;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const _PostItem({
+    required this.index,
     required this.avatar,
+    required this.name,
     required this.username,
     required this.time,
     required this.content,
+    required this.media,
     required this.likeCount,
     required this.commentCount,
     required this.shareCount,
     required this.likedBy,
     this.isLiked = false,
     this.showThread = false,
+    this.onLike,
+    this.onDelete,
+    this.onEdit,
     super.key,
   });
 
@@ -174,18 +306,19 @@ class _PostItem extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        if (isLiked)
-                          const Icon(
-                            Icons.favorite,
-                            color: Colors.red,
-                            size: 24,
-                          ),
-                        if (isLiked) const SizedBox(width: 4),
                         Text(
-                          username,
+                          name,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          username,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -213,12 +346,57 @@ class _PostItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[600]),
+              if (onEdit != null || onDelete != null)
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit' && onEdit != null) onEdit!();
+                    if (value == 'delete' && onDelete != null) onDelete!();
+                  },
+                  itemBuilder:
+                      (context) => [
+                        if (onEdit != null)
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('Edit'),
+                          ),
+                        if (onDelete != null)
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Hapus'),
+                          ),
+                      ],
+                ),
             ],
           ),
           const SizedBox(height: 8),
           Text(content, style: const TextStyle(fontSize: 15)),
+          if (media.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: SizedBox(
+                height: 80,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children:
+                      media
+                          .map(
+                            (m) => Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.asset(
+                                  m,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                ),
+              ),
+            ),
           if (showThread)
             Padding(
               padding: const EdgeInsets.only(top: 4.0, left: 36.0),
@@ -234,38 +412,35 @@ class _PostItem extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const SizedBox(width: 36),
-              GestureDetector(
-                onTap: () {
+              IconButton(
+                icon: Icon(
+                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: isLiked ? Colors.red : Colors.grey[600],
+                  size: 20,
+                ),
+                onPressed: onLike,
+              ),
+              Text('$likeCount', style: const TextStyle(fontSize: 13)),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 18,
+                  color: Color(0xFF7C3AED),
+                ),
+                onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => CommentPage(
-                            postId: username,
-                            postContent: content,
-                          ),
+                      builder: (context) => CommentPage(postIndex: index),
                     ),
                   );
                 },
-                child: Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  size: 18,
-                  color: Colors.grey[600],
-                ),
               ),
-              const SizedBox(width: 4),
-              Text('$likeCount', style: const TextStyle(fontSize: 13)),
-              const SizedBox(width: 16),
-              Icon(Icons.repeat_rounded, size: 18, color: Colors.grey[600]),
               const SizedBox(width: 4),
               Text('$commentCount', style: const TextStyle(fontSize: 13)),
               const SizedBox(width: 16),
-              Icon(
-                Icons.favorite_border_rounded,
-                size: 18,
-                color: Colors.grey[600],
-              ),
+              Icon(Icons.repeat_rounded, size: 18, color: Colors.grey[600]),
               const SizedBox(width: 4),
               Text('$shareCount', style: const TextStyle(fontSize: 13)),
               const Spacer(),

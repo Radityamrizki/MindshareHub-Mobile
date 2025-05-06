@@ -61,6 +61,8 @@ flutter:
   assets:
     - assets/images/orang.png
     - assets/images/tangan.png
+    - assets/images/Profile.png
+    - assets/images/Profile2.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
