@@ -14,7 +14,7 @@ class PostRepository {
       'shareCount': 21,
       'likedBy': 'user123 and user333',
       'isLiked': true,
-      'showThread': true,
+      'showThread': false,
       'comments': [
         {
           'name': 'User 5234',
@@ -129,6 +129,31 @@ class PostRepository {
     posts.value = [
       ...posts.value.sublist(0, index),
       ...posts.value.sublist(index + 1),
+    ];
+  }
+
+  static void editComment(int postIndex, Map<String, String> comment, String newContent) {
+    final post = posts.value[postIndex];
+    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
+    final commentIndex = comments.indexOf(comment);
+    if (commentIndex != -1) {
+      comments[commentIndex] = {...comments[commentIndex], 'content': newContent};
+      posts.value = [
+        ...posts.value.sublist(0, postIndex),
+        {...post, 'comments': comments, 'commentCount': comments.length},
+        ...posts.value.sublist(postIndex + 1),
+      ];
+    }
+  }
+
+  static void deleteComment(int postIndex, Map<String, String> comment) {
+    final post = posts.value[postIndex];
+    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
+    comments.remove(comment);
+    posts.value = [
+      ...posts.value.sublist(0, postIndex),
+      {...post, 'comments': comments, 'commentCount': comments.length},
+      ...posts.value.sublist(postIndex + 1),
     ];
   }
 
