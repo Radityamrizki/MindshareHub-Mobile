@@ -15,7 +15,11 @@ class _CommentPageState extends State<CommentPage> {
   final TextEditingController _controller = TextEditingController();
   String? _selectedReason;
   final List<String> _reportReasons = [
-    'Spam', 'Kekerasan', 'Penyebaran hoax', 'Pelecehan', 'Lainnya',
+    'Spam',
+    'Kekerasan',
+    'Penyebaran hoax',
+    'Pelecehan',
+    'Lainnya',
   ];
 
   @override
@@ -52,23 +56,33 @@ class _CommentPageState extends State<CommentPage> {
                     title: Text(c['name']!),
                     subtitle: Text(c['content']!),
                     trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
+                      onSelected: (value) async {
                         if (value == 'report') {
                           _showReportDialog(context, c);
-                        } else if (value == 'edit' && c['username'] == user['username']) {
-                          Navigator.push(
+                        } else if (value == 'edit' &&
+                            c['username'] == user['username']) {
+                          final editedContent = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => EditCommentPage(initialContent: c['content']!),
+                              builder: (context) => EditCommentPage(
+                                  initialContent: c['content']!),
                             ),
-                          ).then((editedContent) {
-                            if (editedContent != null) {
-                              // Update the comment immediately after editing
-                              PostRepository.editComment(widget.postIndex, c, editedContent);
-                            }
+                          );
+                          if (editedContent != null) {
+                            setState(() {
+                              PostRepository.editComment(
+                                  widget.postIndex, c, editedContent);
+                            });
+                          }
+                        } else if (value == 'delete' &&
+                            c['username'] == user['username']) {
+                          setState(() {
+                            PostRepository.deleteComment(widget.postIndex, c);
                           });
-                        } else if (value == 'delete' && c['username'] == user['username']) {
-                          PostRepository.deleteComment(widget.postIndex, c);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Komentar berhasil dihapus')),
+                          );
                         }
                       },
                       itemBuilder: (context) => [
@@ -119,14 +133,14 @@ class _CommentPageState extends State<CommentPage> {
                   icon: const Icon(Icons.send, color: Color(0xFF7C3AED)),
                   onPressed: () {
                     if (_controller.text.trim().isNotEmpty) {
-                      PostRepository.addComment(widget.postIndex, {
-                        'name': user['name']!,
-                        'username': user['username']!,
-                        'avatar': user['avatar']!,
-                        'content': _controller.text.trim(),
-                        'time': 'now',
-                      });
                       setState(() {
+                        PostRepository.addComment(widget.postIndex, {
+                          'name': user['name']!,
+                          'username': user['username']!,
+                          'avatar': user['avatar']!,
+                          'content': _controller.text.trim(),
+                          'time': 'now',
+                        });
                         _controller.clear();
                       });
                     }
@@ -158,7 +172,8 @@ class _CommentPageState extends State<CommentPage> {
                   _selectedReason = newValue!;
                 });
               },
-              items: _reportReasons.map<DropdownMenuItem<String>>((String value) {
+              items:
+                  _reportReasons.map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -177,7 +192,9 @@ class _CommentPageState extends State<CommentPage> {
               // Handle the report submission
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Komentar berhasil dilaporkan: $_selectedReason')),
+                SnackBar(
+                    content:
+                        Text('Komentar berhasil dilaporkan: $_selectedReason')),
               );
             },
             child: const Text('Laporkan'),
