@@ -6,8 +6,8 @@ class TanganPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -63,7 +63,7 @@ class TanganPage extends StatelessWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withAlpha(51),
                         shape: BoxShape.circle,
                       ),
                     ),

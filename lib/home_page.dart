@@ -7,8 +7,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -29,7 +29,9 @@ class HomePage extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProfilePage()),
+                    MaterialPageRoute(
+                      builder: (context) => const ProfilePage(),
+                    ),
                   );
                 },
                 child: CircleAvatar(
@@ -149,8 +151,8 @@ class _PostItem extends StatelessWidget {
     required this.likedBy,
     this.isLiked = false,
     this.showThread = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,10 +240,11 @@ class _PostItem extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CommentPage(
-                        postId: username,
-                        postContent: content,
-                      ),
+                      builder:
+                          (context) => CommentPage(
+                            postId: username,
+                            postContent: content,
+                          ),
                     ),
                   );
                 },
