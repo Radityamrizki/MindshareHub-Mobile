@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mindshare_hub/edit_page.dart';
 import 'comment_page.dart';
 import 'profile_page.dart';
 import 'make_post_page.dart';
@@ -47,7 +48,7 @@ class HomePage extends StatelessWidget {
           ],
           automaticallyImplyLeading: false,
         ),
-        body: ValueListenableBuilder<List<Map<String, dynamic>>>(
+        body: ValueListenableBuilder<List<Map<String, dynamic>>>( 
           valueListenable: PostRepository.posts,
           builder: (context, posts, _) {
             return ListView.builder(
@@ -73,117 +74,26 @@ class HomePage extends StatelessWidget {
                   onLike: () => PostRepository.toggleLike(index),
                   onDelete:
                       isMine ? () => PostRepository.deletePost(index) : null,
-                  onEdit:
-                      isMine
-                          ? () async {
-                            final controller = TextEditingController(
-                              text: p['content'],
-                            );
-                            List<String> tempMedia = List<String>.from(
-                              p['media'] ?? [],
-                            );
-                            final result = await showDialog<
-                              Map<String, dynamic>
-                            >(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: const Text('Edit Post'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      TextField(
-                                        controller: controller,
-                                        maxLines: 3,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      SizedBox(
-                                        height: 56,
-                                        child: ListView(
-                                          scrollDirection: Axis.horizontal,
-                                          children: [
-                                            ...[
-                                              'assets/images/orang.png',
-                                              'assets/images/tangan.png',
-                                            ].map(
-                                              (m) => GestureDetector(
-                                                onTap: () {
-                                                  if (tempMedia.contains(m)) {
-                                                    tempMedia.remove(m);
-                                                  } else {
-                                                    tempMedia.add(m);
-                                                  }
-                                                  (context as Element)
-                                                      .markNeedsBuild();
-                                                },
-                                                child: Container(
-                                                  margin: const EdgeInsets.only(
-                                                    right: 8,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color:
-                                                          tempMedia.contains(m)
-                                                              ? const Color(
-                                                                0xFF7C3AED,
-                                                              )
-                                                              : Colors
-                                                                  .grey
-                                                                  .shade300,
-                                                      width: 2,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                    child: Image.asset(
-                                                      m,
-                                                      width: 56,
-                                                      height: 56,
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Batal'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pop(context, {
-                                          'content': controller.text,
-                                          'media': tempMedia,
-                                        });
-                                      },
-                                      child: const Text('Simpan'),
-                                    ),
-                                  ],
+                  onEdit: isMine
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditPage(
+                              initialContent: p['content'],
+                              initialMedia: List<String>.from(p['media']),
+                              onSave: (updatedContent, updatedMedia) {
+                                PostRepository.editPost(
+                                  index,
+                                  updatedContent,
+                                  updatedMedia,
                                 );
                               },
-                            );
-                            if (result != null) {
-                              PostRepository.editPost(
-                                index,
-                                result['content'],
-                                List<String>.from(result['media']),
-                              );
-                            }
-                          }
-                          : null,
+                            ),
+                          ),
+                        );
+                      }
+                    : null,
                 );
               },
             );
@@ -248,7 +158,7 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _PostItem extends StatelessWidget {
+class _PostItem extends StatefulWidget {
   final int index;
   final String avatar;
   final String name;
@@ -287,7 +197,24 @@ class _PostItem extends StatelessWidget {
   });
 
   @override
+  _PostItemState createState() => _PostItemState();
+}
+
+class _PostItemState extends State<_PostItem> {
+  String? _selectedReason;
+  final List<String> _reportReasons = [
+    'Spam',
+    'Kekerasan',
+    'Penyebaran hoax',
+    'Pelecehan',
+    'Lainnya',
+  ];
+
+  @override
   Widget build(BuildContext context) {
+    final currentUser = UserRepository.currentUser;
+    final isMine = widget.username == currentUser['username'];
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: const BoxDecoration(
@@ -298,7 +225,7 @@ class _PostItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(backgroundImage: AssetImage(avatar), radius: 22),
+              CircleAvatar(backgroundImage: AssetImage(widget.avatar), radius: 22),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -307,7 +234,7 @@ class _PostItem extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          name,
+                          widget.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -315,7 +242,7 @@ class _PostItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          username,
+                          widget.username,
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 13,
@@ -323,7 +250,7 @@ class _PostItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          ':$time',
+                          ':${widget.time}',
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 13,
@@ -331,73 +258,112 @@ class _PostItem extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (likedBy.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: Text(
-                          '$likedBy liked',
-                          style: const TextStyle(
-                            color: Color(0xFF7C3AED),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
-              if (onEdit != null || onDelete != null)
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit' && onEdit != null) onEdit!();
-                    if (value == 'delete' && onDelete != null) onDelete!();
-                  },
-                  itemBuilder:
-                      (context) => [
-                        if (onEdit != null)
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit'),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit' && widget.onEdit != null) widget.onEdit!();
+                  if (value == 'delete' && widget.onDelete != null) widget.onDelete!();
+                  if (value == 'report') {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Laporkan Postingan'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Pilih alasan Anda melaporkan postingan ini:'),
+                            const SizedBox(height: 16),
+                            DropdownButton<String>(
+                              value: _selectedReason,
+                              isExpanded: true,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedReason = newValue!;
+                                });
+                              },
+                              items: _reportReasons.map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Batal'),
                           ),
-                        if (onDelete != null)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Hapus'),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Postingan berhasil dilaporkan: $_selectedReason')),
+                              );
+                            },
+                            child: const Text('Laporkan'),
                           ),
-                      ],
-                ),
+                        ],
+                      ),
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (isMine)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit'),
+                    ),
+                  if (isMine)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Hapus'),
+                    ),
+                  if (!isMine)
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Text('Laporkan'),
+                    ),
+                  const PopupMenuItem(
+                    value: 'cancel',
+                    child: Text('Batal'),
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(content, style: const TextStyle(fontSize: 15)),
-          if (media.isNotEmpty)
+          Text(widget.content, style: const TextStyle(fontSize: 15)),
+          if (widget.media.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: SizedBox(
                 height: 80,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  children:
-                      media
-                          .map(
-                            (m) => Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.asset(
-                                  m,
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                  children: widget.media
+                      .map(
+                        (m) => Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              m,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
                             ),
-                          )
-                          .toList(),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
             ),
-          if (showThread)
+          if (widget.showThread)
             Padding(
               padding: const EdgeInsets.only(top: 4.0, left: 36.0),
               child: Text(
@@ -414,13 +380,13 @@ class _PostItem extends StatelessWidget {
             children: [
               IconButton(
                 icon: Icon(
-                  isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: isLiked ? Colors.red : Colors.grey[600],
+                  widget.isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: widget.isLiked ? Colors.red : Colors.grey[600],
                   size: 20,
                 ),
-                onPressed: onLike,
+                onPressed: widget.onLike,
               ),
-              Text('$likeCount', style: const TextStyle(fontSize: 13)),
+              Text('${widget.likeCount}', style: const TextStyle(fontSize: 13)),
               const SizedBox(width: 16),
               IconButton(
                 icon: const Icon(
@@ -432,19 +398,12 @@ class _PostItem extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CommentPage(postIndex: index),
+                      builder: (context) => CommentPage(postIndex: widget.index),
                     ),
                   );
                 },
               ),
-              const SizedBox(width: 4),
-              Text('$commentCount', style: const TextStyle(fontSize: 13)),
-              const SizedBox(width: 16),
-              Icon(Icons.repeat_rounded, size: 18, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text('$shareCount', style: const TextStyle(fontSize: 13)),
-              const Spacer(),
-              Icon(Icons.share_outlined, size: 18, color: Colors.grey[600]),
+              Text('${widget.commentCount}', style: const TextStyle(fontSize: 13)),
             ],
           ),
         ],
