@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 
-class TanganPage extends StatelessWidget {
-  const TanganPage({super.key});
+class OnboardingPage2 extends StatelessWidget {
+  const OnboardingPage2({super.key});
 
   @override
   Widget build(BuildContext context) {

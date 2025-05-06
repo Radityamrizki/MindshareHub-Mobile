@@ -139,7 +139,7 @@ class OnboardingPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const TanganPage(),
+                        builder: (context) => const OnboardingPage2(),
                       ),
                     );
                   },
