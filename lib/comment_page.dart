@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'post_repository.dart';
 import 'user_repository.dart';
+import 'edit_comment_page.dart';
 
 class CommentPage extends StatefulWidget {
   final int postIndex;
@@ -12,12 +13,17 @@ class CommentPage extends StatefulWidget {
 
 class _CommentPageState extends State<CommentPage> {
   final TextEditingController _controller = TextEditingController();
+  String? _selectedReason;
+  final List<String> _reportReasons = [
+    'Spam', 'Kekerasan', 'Penyebaran hoax', 'Pelecehan', 'Lainnya',
+  ];
 
   @override
   Widget build(BuildContext context) {
     final post = PostRepository.posts.value[widget.postIndex];
     final comments = List<Map<String, String>>.from(post['comments'] ?? []);
     final user = UserRepository.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Komentar', style: TextStyle(color: Colors.black)),
@@ -45,7 +51,48 @@ class _CommentPageState extends State<CommentPage> {
                     ),
                     title: Text(c['name']!),
                     subtitle: Text(c['content']!),
-                    trailing: Text(c['time'] ?? ''),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'report') {
+                          _showReportDialog(context, c);
+                        } else if (value == 'edit' && c['username'] == user['username']) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditCommentPage(initialContent: c['content']!),
+                            ),
+                          ).then((editedContent) {
+                            if (editedContent != null) {
+                              // Update the comment immediately after editing
+                              PostRepository.editComment(widget.postIndex, c, editedContent);
+                            }
+                          });
+                        } else if (value == 'delete' && c['username'] == user['username']) {
+                          PostRepository.deleteComment(widget.postIndex, c);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        if (c['username'] == user['username'])
+                          const PopupMenuItem<String>(
+                            value: 'edit',
+                            child: Text('Edit Komentar'),
+                          ),
+                        if (c['username'] == user['username'])
+                          const PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Text('Hapus Komentar'),
+                          ),
+                        if (c['username'] != user['username'])
+                          const PopupMenuItem<String>(
+                            value: 'report',
+                            child: Text('Laporkan Komentar'),
+                          ),
+                        const PopupMenuItem<String>(
+                          value: 'cancel',
+                          child: Text('Batal'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -87,6 +134,53 @@ class _CommentPageState extends State<CommentPage> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context, Map<String, String> comment) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Laporkan Komentar'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Pilih alasan Anda melaporkan komentar ini:'),
+            const SizedBox(height: 16),
+            DropdownButton<String>(
+              value: _selectedReason,
+              isExpanded: true,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedReason = newValue!;
+                });
+              },
+              items: _reportReasons.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Handle the report submission
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Komentar berhasil dilaporkan: $_selectedReason')),
+              );
+            },
+            child: const Text('Laporkan'),
           ),
         ],
       ),
