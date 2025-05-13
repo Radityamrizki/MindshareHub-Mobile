@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mindshare_hub/edit_page.dart';
+import 'edit_page.dart';
 import 'comment_page.dart';
 import 'profile_page.dart';
 import 'make_post_page.dart';
@@ -12,8 +12,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUser = UserRepository.currentUser;
-    return PopScope(
-      canPop: false,
+    return WillPopScope(
+      onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -48,7 +48,7 @@ class HomePage extends StatelessWidget {
           ],
           automaticallyImplyLeading: false,
         ),
-        body: ValueListenableBuilder<List<Map<String, dynamic>>>( 
+        body: ValueListenableBuilder<List<Map<String, dynamic>>>(
           valueListenable: PostRepository.posts,
           builder: (context, posts, _) {
             return ListView.builder(
@@ -75,25 +75,25 @@ class HomePage extends StatelessWidget {
                   onDelete:
                       isMine ? () => PostRepository.deletePost(index) : null,
                   onEdit: isMine
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditPage(
-                              initialContent: p['content'],
-                              initialMedia: List<String>.from(p['media']),
-                              onSave: (updatedContent, updatedMedia) {
-                                PostRepository.editPost(
-                                  index,
-                                  updatedContent,
-                                  updatedMedia,
-                                );
-                              },
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditPage(
+                                initialContent: p['content'],
+                                initialMedia: List<String>.from(p['media']),
+                                onSave: (updatedContent, updatedMedia) {
+                                  PostRepository.editPost(
+                                    index,
+                                    updatedContent,
+                                    updatedMedia,
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                    : null,
+                          );
+                        }
+                      : null,
                 );
               },
             );
@@ -104,24 +104,23 @@ class HomePage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder:
-                    (context) => MakePostPage(
-                      onPost: ({
-                        required content,
-                        required avatar,
-                        required name,
-                        required username,
-                        required media,
-                      }) {
-                        PostRepository.addPost(
-                          content: content,
-                          avatar: avatar,
-                          name: name,
-                          username: username,
-                          media: media,
-                        );
-                      },
-                    ),
+                builder: (context) => MakePostPage(
+                  onPost: ({
+                    required content,
+                    required avatar,
+                    required name,
+                    required username,
+                    required media,
+                  }) {
+                    PostRepository.addPost(
+                      content: content,
+                      avatar: avatar,
+                      name: name,
+                      username: username,
+                      media: media,
+                    );
+                  },
+                ),
               ),
             );
           },
@@ -134,6 +133,18 @@ class HomePage extends StatelessWidget {
           unselectedItemColor: Colors.black54,
           showSelectedLabels: false,
           showUnselectedLabels: false,
+          currentIndex: 0,
+          onTap: (index) {
+            if (index == 2) {
+              // Show a snackbar or dialog indicating feature is coming soon
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Notifications feature coming soon!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          },
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_rounded),
@@ -225,7 +236,8 @@ class _PostItemState extends State<_PostItem> {
         children: [
           Row(
             children: [
-              CircleAvatar(backgroundImage: AssetImage(widget.avatar), radius: 22),
+              CircleAvatar(
+                  backgroundImage: AssetImage(widget.avatar), radius: 22),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -263,8 +275,10 @@ class _PostItemState extends State<_PostItem> {
               ),
               PopupMenuButton<String>(
                 onSelected: (value) {
-                  if (value == 'edit' && widget.onEdit != null) widget.onEdit!();
-                  if (value == 'delete' && widget.onDelete != null) widget.onDelete!();
+                  if (value == 'edit' && widget.onEdit != null)
+                    widget.onEdit!();
+                  if (value == 'delete' && widget.onDelete != null)
+                    widget.onDelete!();
                   if (value == 'report') {
                     showDialog(
                       context: context,
@@ -273,7 +287,8 @@ class _PostItemState extends State<_PostItem> {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('Pilih alasan Anda melaporkan postingan ini:'),
+                            const Text(
+                                'Pilih alasan Anda melaporkan postingan ini:'),
                             const SizedBox(height: 16),
                             DropdownButton<String>(
                               value: _selectedReason,
@@ -283,7 +298,9 @@ class _PostItemState extends State<_PostItem> {
                                   _selectedReason = newValue!;
                                 });
                               },
-                              items: _reportReasons.map<DropdownMenuItem<String>>((String value) {
+                              items: _reportReasons
+                                  .map<DropdownMenuItem<String>>(
+                                      (String value) {
                                 return DropdownMenuItem<String>(
                                   value: value,
                                   child: Text(value),
@@ -301,7 +318,9 @@ class _PostItemState extends State<_PostItem> {
                             onPressed: () {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Postingan berhasil dilaporkan: $_selectedReason')),
+                                SnackBar(
+                                    content: Text(
+                                        'Postingan berhasil dilaporkan: $_selectedReason')),
                               );
                             },
                             child: const Text('Laporkan'),
@@ -398,12 +417,14 @@ class _PostItemState extends State<_PostItem> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CommentPage(postIndex: widget.index),
+                      builder: (context) =>
+                          CommentPage(postIndex: widget.index),
                     ),
                   );
                 },
               ),
-              Text('${widget.commentCount}', style: const TextStyle(fontSize: 13)),
+              Text('${widget.commentCount}',
+                  style: const TextStyle(fontSize: 13)),
             ],
           ),
         ],

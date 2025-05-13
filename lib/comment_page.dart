@@ -3,7 +3,9 @@ import 'post_repository.dart';
 import 'user_repository.dart';
 import 'edit_comment_page.dart';
 
+// Halaman untuk menampilkan dan mengelola komentar
 class CommentPage extends StatefulWidget {
+  // postIndex digunakan untuk mengetahui post mana yang sedang dilihat
   final int postIndex;
   const CommentPage({super.key, required this.postIndex});
 
@@ -12,8 +14,13 @@ class CommentPage extends StatefulWidget {
 }
 
 class _CommentPageState extends State<CommentPage> {
+  // Controller untuk mengelola input teks komentar baru
   final TextEditingController _controller = TextEditingController();
+
+  // Variabel untuk menyimpan alasan pelaporan komentar
   String? _selectedReason;
+
+  // Daftar alasan yang bisa dipilih saat melaporkan komentar
   final List<String> _reportReasons = [
     'Spam',
     'Kekerasan',
@@ -24,11 +31,15 @@ class _CommentPageState extends State<CommentPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Mengambil data post yang sedang dilihat
     final post = PostRepository.posts.value[widget.postIndex];
+    // Mengambil daftar komentar dari post tersebut
     final comments = List<Map<String, String>>.from(post['comments'] ?? []);
+    // Mengambil data user yang sedang login
     final user = UserRepository.currentUser;
 
     return Scaffold(
+      // AppBar dengan judul "Komentar"
       appBar: AppBar(
         title: const Text('Komentar', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -37,9 +48,11 @@ class _CommentPageState extends State<CommentPage> {
       ),
       body: Column(
         children: [
+          // Bagian untuk menampilkan daftar komentar
           Expanded(
             child: ListView(
               children: [
+                // Menampilkan post yang sedang dilihat
                 ListTile(
                   leading: CircleAvatar(
                     backgroundImage: AssetImage(post['avatar']),
@@ -48,19 +61,26 @@ class _CommentPageState extends State<CommentPage> {
                   subtitle: Text(post['content']),
                 ),
                 const Divider(),
+                // Menampilkan daftar komentar
                 ...comments.map(
                   (c) => ListTile(
+                    // Avatar pengguna yang berkomentar
                     leading: CircleAvatar(
                       backgroundImage: AssetImage(c['avatar']!),
                     ),
+                    // Nama pengguna yang berkomentar
                     title: Text(c['name']!),
+                    // Isi komentar
                     subtitle: Text(c['content']!),
+                    // Menu untuk edit/delete/report komentar
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) async {
                         if (value == 'report') {
+                          // Menampilkan dialog untuk melaporkan komentar
                           _showReportDialog(context, c);
                         } else if (value == 'edit' &&
                             c['username'] == user['username']) {
+                          // Membuka halaman edit komentar
                           final editedContent = await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -68,6 +88,7 @@ class _CommentPageState extends State<CommentPage> {
                                   initialContent: c['content']!),
                             ),
                           );
+                          // Jika ada perubahan, update komentar
                           if (editedContent != null) {
                             setState(() {
                               PostRepository.editComment(
@@ -76,26 +97,32 @@ class _CommentPageState extends State<CommentPage> {
                           }
                         } else if (value == 'delete' &&
                             c['username'] == user['username']) {
+                          // Menghapus komentar
                           setState(() {
                             PostRepository.deleteComment(widget.postIndex, c);
                           });
+                          // Menampilkan pesan sukses
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Komentar berhasil dihapus')),
                           );
                         }
                       },
+                      // Menu yang ditampilkan saat tombol menu ditekan
                       itemBuilder: (context) => [
+                        // Menu edit hanya muncul jika user adalah pemilik komentar
                         if (c['username'] == user['username'])
                           const PopupMenuItem<String>(
                             value: 'edit',
                             child: Text('Edit Komentar'),
                           ),
+                        // Menu delete hanya muncul jika user adalah pemilik komentar
                         if (c['username'] == user['username'])
                           const PopupMenuItem<String>(
                             value: 'delete',
                             child: Text('Hapus Komentar'),
                           ),
+                        // Menu report hanya muncul jika user bukan pemilik komentar
                         if (c['username'] != user['username'])
                           const PopupMenuItem<String>(
                             value: 'report',
@@ -112,15 +139,18 @@ class _CommentPageState extends State<CommentPage> {
               ],
             ),
           ),
+          // Bagian untuk menambah komentar baru
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
+                // Avatar user yang sedang login
                 CircleAvatar(
                   backgroundImage: AssetImage(user['avatar']!),
                   radius: 18,
                 ),
                 const SizedBox(width: 8),
+                // Input teks untuk menulis komentar baru
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -129,11 +159,14 @@ class _CommentPageState extends State<CommentPage> {
                     ),
                   ),
                 ),
+                // Tombol untuk mengirim komentar
                 IconButton(
                   icon: const Icon(Icons.send, color: Color(0xFF7C3AED)),
                   onPressed: () {
+                    // Cek apakah ada teks yang diketik
                     if (_controller.text.trim().isNotEmpty) {
                       setState(() {
+                        // Menambah komentar baru
                         PostRepository.addComment(widget.postIndex, {
                           'name': user['name']!,
                           'username': user['username']!,
@@ -141,6 +174,7 @@ class _CommentPageState extends State<CommentPage> {
                           'content': _controller.text.trim(),
                           'time': 'now',
                         });
+                        // Membersihkan input setelah komentar terkirim
                         _controller.clear();
                       });
                     }
@@ -154,6 +188,7 @@ class _CommentPageState extends State<CommentPage> {
     );
   }
 
+  // Fungsi untuk menampilkan dialog pelaporan komentar
   void _showReportDialog(BuildContext context, Map<String, String> comment) {
     showDialog(
       context: context,
@@ -164,6 +199,7 @@ class _CommentPageState extends State<CommentPage> {
           children: [
             const Text('Pilih alasan Anda melaporkan komentar ini:'),
             const SizedBox(height: 16),
+            // Dropdown untuk memilih alasan pelaporan
             DropdownButton<String>(
               value: _selectedReason,
               isExpanded: true,
@@ -183,14 +219,17 @@ class _CommentPageState extends State<CommentPage> {
           ],
         ),
         actions: [
+          // Tombol batal
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Batal'),
           ),
+          // Tombol laporkan
           ElevatedButton(
             onPressed: () {
-              // Handle the report submission
+              // Menutup dialog
               Navigator.pop(context);
+              // Menampilkan pesan sukses
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                     content:

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
+// Repository untuk mengelola data post dan komentar
 class PostRepository {
+  // ValueNotifier untuk menyimpan daftar post
   static final ValueNotifier<List<Map<String, dynamic>>> posts = ValueNotifier([
     {
       'name': 'User 766',
@@ -72,6 +75,7 @@ class PostRepository {
     },
   ]);
 
+  // Fungsi untuk menambah post baru
   static void addPost({
     required String content,
     required String avatar,
@@ -99,6 +103,7 @@ class PostRepository {
     ];
   }
 
+  // Fungsi untuk menambah komentar baru ke dalam post
   static void addComment(int postIndex, Map<String, String> comment) {
     final post = posts.value[postIndex];
     final comments = List<Map<String, String>>.from(post['comments'] ?? []);
@@ -110,6 +115,39 @@ class PostRepository {
     ];
   }
 
+  // Fungsi untuk mengedit komentar yang sudah ada
+  static void editComment(
+      int postIndex, Map<String, String> oldComment, String newContent) {
+    final post = posts.value[postIndex];
+    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
+    final index = comments.indexWhere((c) =>
+        c['username'] == oldComment['username'] &&
+        c['content'] == oldComment['content']);
+    if (index != -1) {
+      comments[index]['content'] = newContent;
+      posts.value = [
+        ...posts.value.sublist(0, postIndex),
+        {...post, 'comments': comments, 'commentCount': comments.length},
+        ...posts.value.sublist(postIndex + 1),
+      ];
+    }
+  }
+
+  // Fungsi untuk menghapus komentar
+  static void deleteComment(int postIndex, Map<String, String> comment) {
+    final post = posts.value[postIndex];
+    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
+    comments.removeWhere((c) =>
+        c['username'] == comment['username'] &&
+        c['content'] == comment['content']);
+    posts.value = [
+      ...posts.value.sublist(0, postIndex),
+      {...post, 'comments': comments, 'commentCount': comments.length},
+      ...posts.value.sublist(postIndex + 1),
+    ];
+  }
+
+  // Fungsi untuk menambah like pada post
   static void toggleLike(int index) {
     final post = posts.value[index];
     final isLiked = post['isLiked'] as bool;
@@ -129,31 +167,6 @@ class PostRepository {
     posts.value = [
       ...posts.value.sublist(0, index),
       ...posts.value.sublist(index + 1),
-    ];
-  }
-
-  static void editComment(int postIndex, Map<String, String> comment, String newContent) {
-    final post = posts.value[postIndex];
-    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
-    final commentIndex = comments.indexOf(comment);
-    if (commentIndex != -1) {
-      comments[commentIndex] = {...comments[commentIndex], 'content': newContent};
-      posts.value = [
-        ...posts.value.sublist(0, postIndex),
-        {...post, 'comments': comments, 'commentCount': comments.length},
-        ...posts.value.sublist(postIndex + 1),
-      ];
-    }
-  }
-
-  static void deleteComment(int postIndex, Map<String, String> comment) {
-    final post = posts.value[postIndex];
-    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
-    comments.remove(comment);
-    posts.value = [
-      ...posts.value.sublist(0, postIndex),
-      {...post, 'comments': comments, 'commentCount': comments.length},
-      ...posts.value.sublist(postIndex + 1),
     ];
   }
 
