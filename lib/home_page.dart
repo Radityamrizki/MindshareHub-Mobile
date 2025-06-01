@@ -5,6 +5,9 @@ import 'profile_page.dart';
 import 'make_post_page.dart';
 import 'post_repository.dart';
 import 'user_repository.dart';
+import 'notification_page.dart';
+import 'home_page.dart';
+import 'diary_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -99,41 +102,35 @@ class HomePage extends StatelessWidget {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (context) => MakePostPage(
-                      onPost: ({
-                        required content,
-                        required avatar,
-                        required name,
-                        required username,
-                        required media,
-                      }) {
-                        PostRepository.addPost(
-                          content: content,
-                          avatar: avatar,
-                          name: name,
-                          username: username,
-                          media: media,
-                        );
-                      },
-                    ),
-              ),
-            );
-          },
-          backgroundColor: const Color(0xFF7C3AED),
-          child: const Icon(Icons.edit, color: Colors.white),
-        ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           selectedItemColor: const Color(0xFF7C3AED),
           unselectedItemColor: Colors.black54,
           showSelectedLabels: false,
           showUnselectedLabels: false,
+          currentIndex: 0,
+          onTap: (index) {
+            if (index == 0) {
+              // Sudah di Home
+            } else if (index == 1) {
+              // Search
+              // TODO: Ganti dengan halaman search jika sudah ada
+            } else if (index == 2) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationPage(),
+                ),
+              );
+            } else if (index == 3) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DiaryPage(),
+                ),
+              );
+            }
+          },
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_rounded),
@@ -148,8 +145,8 @@ class HomePage extends StatelessWidget {
               label: 'Notifications',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.menu_rounded),
-              label: 'Menu',
+              icon: Icon(Icons.menu_book),
+              label: 'Diary',
             ),
           ],
         ),
