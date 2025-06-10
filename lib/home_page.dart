@@ -1,20 +1,105 @@
 import 'package:flutter/material.dart';
-import 'package:mindshare_hub/edit_page.dart';
+import 'package:provider/provider.dart';
+import 'edit_page.dart';
 import 'comment_page.dart';
 import 'profile_page.dart';
 import 'make_post_page.dart';
-import 'post_repository.dart';
-import 'user_repository.dart';
+import 'repositories/post_repository.dart';
+import 'providers/auth_provider.dart';
 import 'notification_page.dart';
-import 'home_page.dart';
 import 'diary_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
+  String? _selectedReason;
+  final List<String> _reportReasons = [
+    'Spam',
+    'Kekerasan',
+    'Penyebaran hoax',
+    'Pelecehan',
+    'Lainnya',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    try {
+      await PostRepository.fetchPosts();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading posts: $e')),
+        );
+      }
+    }
+  }
+
+  void _showReportDialog(BuildContext context, Map<String, dynamic> post) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Laporkan Postingan'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Pilih alasan Anda melaporkan postingan ini:'),
+            const SizedBox(height: 16),
+            DropdownButton<String>(
+              value: _selectedReason,
+              isExpanded: true,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedReason = newValue!;
+                });
+              },
+              items:
+                  _reportReasons.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content:
+                      Text('Postingan berhasil dilaporkan: $_selectedReason'),
+                ),
+              );
+            },
+            child: const Text('Laporkan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final currentUser = UserRepository.currentUser;
+    final currentUser = context.read<AuthProvider>().user;
+    if (currentUser == null) return const SizedBox();
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -44,63 +129,342 @@ class HomePage extends StatelessWidget {
                 },
                 child: CircleAvatar(
                   radius: 18,
-                  backgroundImage: AssetImage(currentUser['avatar']!),
+                  backgroundImage:
+                      NetworkImage(currentUser['profile_picture'] ?? ''),
+                  onBackgroundImageError: (e, s) {
+                    setState(() {});
+                  },
+                  child: currentUser['profile_picture'] == null ||
+                          currentUser['profile_picture'].isEmpty
+                      ? const Icon(Icons.person, color: Colors.white)
+                      : null,
+                  backgroundColor: const Color(0xFF7C3AED),
                 ),
               ),
             ),
           ],
           automaticallyImplyLeading: false,
         ),
-        body: ValueListenableBuilder<List<Map<String, dynamic>>>( 
+        body: ValueListenableBuilder<List<Map<String, dynamic>>>(
           valueListenable: PostRepository.posts,
           builder: (context, posts, _) {
-            return ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final p = posts[index];
-                final isMine = p['username'] == currentUser['username'];
-                return _PostItem(
-                  index: index,
-                  avatar: p['avatar'],
-                  name: p['name'],
-                  username: p['username'],
-                  time: p['time'],
-                  content: p['content'],
-                  media: List<String>.from(p['media'] ?? []),
-                  likeCount: p['likeCount'],
-                  commentCount: p['commentCount'],
-                  shareCount: p['shareCount'],
-                  likedBy: p['likedBy'],
-                  isLiked: p['isLiked'],
-                  showThread: p['showThread'],
-                  onLike: () => PostRepository.toggleLike(index),
-                  onDelete:
-                      isMine ? () => PostRepository.deletePost(index) : null,
-                  onEdit: isMine
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditPage(
-                              initialContent: p['content'],
-                              initialMedia: List<String>.from(p['media']),
-                              onSave: (updatedContent, updatedMedia) {
-                                PostRepository.editPost(
-                                  index,
-                                  updatedContent,
-                                  updatedMedia,
-                                );
-                              },
+            if (posts.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: _loadPosts,
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: posts.length,
+                itemBuilder: (context, index) {
+                  final post = posts[index];
+                  final isMine = post['user']['id'].toString() ==
+                      currentUser['id'].toString();
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 16, right: 16, top: 16),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: const Color(0xFF7C3AED),
+                                child: post['user']?['profile_picture'] != null
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          post['user']?['profile_picture'] ??
+                                              '',
+                                          width: 40,
+                                          height: 40,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(Icons.person,
+                                                      color: Colors.white),
+                                        ),
+                                      )
+                                    : const Icon(Icons.person,
+                                        color: Colors.white),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      post['user']['name'] ?? '',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '@${post['user']['username'] ?? ''}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          post['created_at'] ?? '',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_horiz),
+                                onSelected: (value) async {
+                                  if (value == 'edit' && isMine) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditPage(
+                                          initialContent: post['content'] ?? '',
+                                          initialMedia:
+                                              post['image_path'] != null
+                                                  ? [post['image_path']]
+                                                  : [],
+                                          onSave:
+                                              (updatedContent, updatedMedia) {
+                                            PostRepository.editPost(
+                                              post['id'].toString(),
+                                              updatedContent,
+                                              updatedMedia.isNotEmpty
+                                                  ? updatedMedia.first
+                                                  : null,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  } else if (value == 'delete' && isMine) {
+                                    try {
+                                      await PostRepository.deletePost(
+                                          post['id'].toString());
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  'Post deleted successfully')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  'Error deleting post: $e')),
+                                        );
+                                      }
+                                    }
+                                  } else if (value == 'report' && !isMine) {
+                                    _showReportDialog(context, post);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  if (isMine) ...[
+                                    const PopupMenuItem<String>(
+                                      value: 'edit',
+                                      child: Text('Edit Postingan'),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'delete',
+                                      child: Text('Hapus Postingan'),
+                                    ),
+                                  ],
+                                  if (!isMine)
+                                    const PopupMenuItem<String>(
+                                      value: 'report',
+                                      child: Text('Laporkan Postingan'),
+                                    ),
+                                  const PopupMenuItem<String>(
+                                    value: 'cancel',
+                                    child: Text('Batal'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (post['content'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 12,
+                              bottom: 12,
+                            ),
+                            child: Text(post['content']!),
+                          ),
+                        if (post['image_path'] != null)
+                          Container(
+                            width: double.infinity,
+                            height: 300,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                post['image_path'],
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                    child: Icon(
+                                      Icons.image,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        );
-                      }
-                    : null,
-                );
-              },
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 12,
+                            bottom: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () async {
+                                  try {
+                                    await PostRepository.toggleLike(
+                                        post['id'].toString());
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Error toggling like: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      post['is_liked']
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      size: 20,
+                                      color: post['is_liked']
+                                          ? Colors.red
+                                          : Colors.grey[600],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${post['likes_count'] ?? 0}',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          CommentPage(postIndex: index),
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.mode_comment_outlined,
+                                      size: 20,
+                                      color: Colors.grey[600],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${post['total_comments'] ?? 0}',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             );
           },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MakePostPage(
+                  onPost: ({
+                    required String content,
+                    required String avatar,
+                    required String name,
+                    required String username,
+                    required List<String> media,
+                  }) async {
+                    try {
+                      await PostRepository.addPost(
+                        content: content,
+                        imagePath: media.isNotEmpty ? media.first : null,
+                      );
+                      await _loadPosts();
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error creating post: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            );
+          },
+          backgroundColor: const Color(0xFF7C3AED),
+          child: const Icon(Icons.add),
         ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
@@ -108,27 +472,30 @@ class HomePage extends StatelessWidget {
           unselectedItemColor: Colors.black54,
           showSelectedLabels: false,
           showUnselectedLabels: false,
-          currentIndex: 0,
+          currentIndex: _selectedIndex,
           onTap: (index) {
-            if (index == 0) {
-              // Sudah di Home
-            } else if (index == 1) {
-              // Search
-              // TODO: Ganti dengan halaman search jika sudah ada
-            } else if (index == 2) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationPage(),
-                ),
-              );
-            } else if (index == 3) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DiaryPage(),
-                ),
-              );
+            if (index == _selectedIndex) return;
+            setState(() {
+              _selectedIndex = index;
+            });
+
+            switch (index) {
+              case 2:
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationPage(),
+                  ),
+                );
+                break;
+              case 3:
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DiaryPage(),
+                  ),
+                );
+                break;
             }
           },
           items: const [
@@ -150,260 +517,6 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PostItem extends StatefulWidget {
-  final int index;
-  final String avatar;
-  final String name;
-  final String username;
-  final String time;
-  final String content;
-  final List<String> media;
-  final int likeCount;
-  final int commentCount;
-  final int shareCount;
-  final String likedBy;
-  final bool isLiked;
-  final bool showThread;
-  final VoidCallback? onLike;
-  final VoidCallback? onDelete;
-  final VoidCallback? onEdit;
-
-  const _PostItem({
-    required this.index,
-    required this.avatar,
-    required this.name,
-    required this.username,
-    required this.time,
-    required this.content,
-    required this.media,
-    required this.likeCount,
-    required this.commentCount,
-    required this.shareCount,
-    required this.likedBy,
-    this.isLiked = false,
-    this.showThread = false,
-    this.onLike,
-    this.onDelete,
-    this.onEdit,
-    super.key,
-  });
-
-  @override
-  _PostItemState createState() => _PostItemState();
-}
-
-class _PostItemState extends State<_PostItem> {
-  String? _selectedReason;
-  final List<String> _reportReasons = [
-    'Spam',
-    'Kekerasan',
-    'Penyebaran hoax',
-    'Pelecehan',
-    'Lainnya',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final currentUser = UserRepository.currentUser;
-    final isMine = widget.username == currentUser['username'];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFEFEFEF))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(backgroundImage: AssetImage(widget.avatar), radius: 22),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          widget.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.username,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          ':${widget.time}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit' && widget.onEdit != null) widget.onEdit!();
-                  if (value == 'delete' && widget.onDelete != null) widget.onDelete!();
-                  if (value == 'report') {
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Laporkan Postingan'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Pilih alasan Anda melaporkan postingan ini:'),
-                            const SizedBox(height: 16),
-                            DropdownButton<String>(
-                              value: _selectedReason,
-                              isExpanded: true,
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedReason = newValue!;
-                                });
-                              },
-                              items: _reportReasons.map<DropdownMenuItem<String>>((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Batal'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Postingan berhasil dilaporkan: $_selectedReason')),
-                              );
-                            },
-                            child: const Text('Laporkan'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                },
-                itemBuilder: (context) => [
-                  if (isMine)
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Edit'),
-                    ),
-                  if (isMine)
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Hapus'),
-                    ),
-                  if (!isMine)
-                    const PopupMenuItem(
-                      value: 'report',
-                      child: Text('Laporkan'),
-                    ),
-                  const PopupMenuItem(
-                    value: 'cancel',
-                    child: Text('Batal'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(widget.content, style: const TextStyle(fontSize: 15)),
-          if (widget.media.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: SizedBox(
-                height: 80,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: widget.media
-                      .map(
-                        (m) => Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              m,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-          if (widget.showThread)
-            Padding(
-              padding: const EdgeInsets.only(top: 4.0, left: 36.0),
-              child: Text(
-                'Show this thread',
-                style: const TextStyle(
-                  color: Color(0xFF7C3AED),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  widget.isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: widget.isLiked ? Colors.red : Colors.grey[600],
-                  size: 20,
-                ),
-                onPressed: widget.onLike,
-              ),
-              Text('${widget.likeCount}', style: const TextStyle(fontSize: 13)),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: const Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  size: 18,
-                  color: Color(0xFF7C3AED),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CommentPage(postIndex: widget.index),
-                    ),
-                  );
-                },
-              ),
-              Text('${widget.commentCount}', style: const TextStyle(fontSize: 13)),
-            ],
-          ),
-        ],
       ),
     );
   }

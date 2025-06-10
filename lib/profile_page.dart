@@ -346,7 +346,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                             );
                                             if (result != null) {
                                               PostRepository.editPost(
-                                                postIndex,
+                                                postIndex as String,
                                                 result['content'],
                                                 List<String>.from(
                                                   result['media'],
@@ -355,7 +355,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                             }
                                           } else if (value == 'delete') {
                                             PostRepository.deletePost(
-                                              postIndex,
+                                              postIndex as String,
                                             );
                                           }
                                         },
@@ -426,7 +426,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         ),
                                         onPressed:
                                             () => PostRepository.toggleLike(
-                                              postIndex,
+                                              postIndex as String,
                                             ),
                                       ),
                                       Text(

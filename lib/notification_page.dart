@@ -1,26 +1,43 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'diary_page.dart';
-import 'package:flutter/material.dart';
 import 'profile_page.dart';
 import 'notification_page.dart';
 
-
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
 
   @override
-/*************  ✨ Windsurf Command ⭐  *************/
-  /// Membuat halaman notifikasi.
-  ///
-  /// Halaman ini berisi postingan-postingan yang
-  /// dibuat oleh pengguna lain dan terdapat di
-  /// dalam feed pengguna.
-  ///
-  /// Warna background halaman ini adalah putih.
-  ///
+  State<NotificationPage> createState() => _NotificationPageState();
+}
 
-/*******  7bf91dd3-9870-48b8-9ae3-64122f91bc61  *******/
+class _NotificationPageState extends State<NotificationPage> {
+  int _selectedIndex = 2; // Set to 2 for notifications tab
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+    
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+        break;
+      case 1:
+        // Search
+        // TODO: Ganti dengan halaman search jika sudah ada
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DiaryPage()),
+        );
+        break;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -145,53 +162,32 @@ class NotificationPage extends StatelessWidget {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF7C3AED),
-          unselectedItemColor: Colors.black54,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          currentIndex: 0,
-          onTap: (index) {
-            if (index == 0) {
-              // Sudah di Home
-            } else if (index == 1) {
-              // Search
-              // TODO: Ganti dengan halaman search jika sudah ada
-            } else if (index == 2) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationPage(),
-                ),
-              );
-            } else if (index == 3) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DiaryPage(),
-                ),
-              );
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search_rounded),
-              label: 'Search',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_rounded),
-              label: 'Notifications',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book),
-              label: 'Diary',
-            ),
-          ],
-        ),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF7C3AED),
+        unselectedItemColor: Colors.black54,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search_rounded),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_none_rounded),
+            label: 'Notifications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book),
+            label: 'Diary',
+          ),
+        ],
+      ),
     );
   }
-} 
+}

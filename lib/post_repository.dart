@@ -1,168 +1,194 @@
 import 'package:flutter/material.dart';
+import 'services/api_service.dart';
 
 class PostRepository {
-  static final ValueNotifier<List<Map<String, dynamic>>> posts = ValueNotifier([
-    {
-      'name': 'User 766',
-      'username': '@user766',
-      'avatar': 'assets/images/Profile.png',
-      'time': '12h',
-      'content': 'alhamdulillah yah',
-      'media': <String>[],
-      'likeCount': 28,
-      'commentCount': 5,
-      'shareCount': 21,
-      'likedBy': 'user123 and user333',
-      'isLiked': true,
-      'showThread': false,
-      'comments': [
-        {
-          'name': 'User 5234',
-          'username': '@user5234',
-          'avatar': 'assets/images/Profile2.png',
-          'content': 'Mantap!',
-          'time': '1h',
-        },
-      ],
-    },
-    {
-      'name': 'User 5234',
-      'username': '@user5234',
-      'avatar': 'assets/images/Profile2.png',
-      'time': '3h',
-      'content': 'Cara agar kuat mental gimana y?',
-      'media': <String>[],
-      'likeCount': 46,
-      'commentCount': 18,
-      'shareCount': 363,
-      'likedBy': 'User43543',
-      'isLiked': true,
-      'showThread': false,
-      'comments': [],
-    },
-    {
-      'name': 'User 2352',
-      'username': '@user2352',
-      'avatar': 'assets/images/Profile.png',
-      'time': '10h',
-      'content': 'kalian pernah ga takut kehilangan barang yg diimpikan?',
-      'media': <String>[],
-      'likeCount': 1906,
-      'commentCount': 1249,
-      'shareCount': 7461,
-      'likedBy': 'User43543',
-      'isLiked': true,
-      'showThread': false,
-      'comments': [],
-    },
-    {
-      'name': 'User 24356',
-      'username': '@user24356',
-      'avatar': 'assets/images/Profile2.png',
-      'time': '3h',
-      'content': 'pertama kali pake mind min',
-      'media': <String>[],
-      'likeCount': 46,
-      'commentCount': 18,
-      'shareCount': 363,
-      'likedBy': 'User43543',
-      'isLiked': true,
-      'showThread': false,
-      'comments': [],
-    },
-  ]);
+  static final ValueNotifier<List<Map<String, dynamic>>> posts =
+      ValueNotifier([]);
+  static bool isLoading = false;
+  static String? error;
 
-  static void addPost({
-    required String content,
-    required String avatar,
-    required String name,
-    required String username,
-    required List<String> media,
-  }) {
-    posts.value = [
-      {
-        'name': name,
-        'username': username,
-        'avatar': avatar,
-        'time': 'now',
-        'content': content,
-        'media': media,
-        'likeCount': 0,
-        'commentCount': 0,
-        'shareCount': 0,
-        'likedBy': '',
-        'isLiked': false,
-        'showThread': false,
-        'comments': [],
-      },
-      ...posts.value,
-    ];
-  }
-
-  static void addComment(int postIndex, Map<String, String> comment) {
-    final post = posts.value[postIndex];
-    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
-    comments.add(comment);
-    posts.value = [
-      ...posts.value.sublist(0, postIndex),
-      {...post, 'comments': comments, 'commentCount': comments.length},
-      ...posts.value.sublist(postIndex + 1),
-    ];
-  }
-
-  static void toggleLike(int index) {
-    final post = posts.value[index];
-    final isLiked = post['isLiked'] as bool;
-    final likeCount = post['likeCount'] as int;
-    posts.value = [
-      ...posts.value.sublist(0, index),
-      {
-        ...post,
-        'isLiked': !isLiked,
-        'likeCount': isLiked ? likeCount - 1 : likeCount + 1,
-      },
-      ...posts.value.sublist(index + 1),
-    ];
-  }
-
-  static void deletePost(int index) {
-    posts.value = [
-      ...posts.value.sublist(0, index),
-      ...posts.value.sublist(index + 1),
-    ];
-  }
-
-  static void editComment(int postIndex, Map<String, String> comment, String newContent) {
-    final post = posts.value[postIndex];
-    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
-    final commentIndex = comments.indexOf(comment);
-    if (commentIndex != -1) {
-      comments[commentIndex] = {...comments[commentIndex], 'content': newContent};
-      posts.value = [
-        ...posts.value.sublist(0, postIndex),
-        {...post, 'comments': comments, 'commentCount': comments.length},
-        ...posts.value.sublist(postIndex + 1),
-      ];
+  static Future<void> loadPosts() async {
+    try {
+      isLoading = true;
+      error = null;
+      final fetchedPosts = await ApiService.getPosts();
+      posts.value = fetchedPosts;
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
     }
   }
 
-  static void deleteComment(int postIndex, Map<String, String> comment) {
-    final post = posts.value[postIndex];
-    final comments = List<Map<String, String>>.from(post['comments'] ?? []);
-    comments.remove(comment);
-    posts.value = [
-      ...posts.value.sublist(0, postIndex),
-      {...post, 'comments': comments, 'commentCount': comments.length},
-      ...posts.value.sublist(postIndex + 1),
-    ];
+  static Future<void> addPost({
+    required String content,
+    String? imagePath,
+  }) async {
+    try {
+      error = null;
+      final newPost = await ApiService.createPost(
+        content: content,
+        imagePath: imagePath,
+      );
+      posts.value = [newPost, ...posts.value];
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
   }
 
-  static void editPost(int index, String newContent, List<String> newMedia) {
-    final post = posts.value[index];
-    posts.value = [
-      ...posts.value.sublist(0, index),
-      {...post, 'content': newContent, 'media': newMedia},
-      ...posts.value.sublist(index + 1),
-    ];
+  static Future<void> addComment(String postId, String comment) async {
+    try {
+      error = null;
+      final newComment = await ApiService.createComment(
+        postId: postId,
+        comment: comment,
+      );
+
+      final postIndex =
+          posts.value.indexWhere((post) => post['id'].toString() == postId);
+      if (postIndex != -1) {
+        final post = posts.value[postIndex];
+        final comments =
+            List<Map<String, dynamic>>.from(post['comments'] ?? []);
+        comments.add(newComment);
+        posts.value = [
+          ...posts.value.sublist(0, postIndex),
+          {...post, 'comments': comments, 'comment_count': comments.length},
+          ...posts.value.sublist(postIndex + 1),
+        ];
+      }
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
+  }
+
+  static Future<void> toggleLike(String postId) async {
+    try {
+      error = null;
+      final response = await ApiService.togglePostLike(postId);
+
+      final postIndex =
+          posts.value.indexWhere((post) => post['id'].toString() == postId);
+      if (postIndex != -1) {
+        final post = posts.value[postIndex];
+        posts.value = [
+          ...posts.value.sublist(0, postIndex),
+          {
+            ...post,
+            'is_liked': response['is_liked'],
+            'like_count': response['like_count'],
+          },
+          ...posts.value.sublist(postIndex + 1),
+        ];
+      }
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
+  }
+
+  static Future<void> deletePost(String postId) async {
+    try {
+      error = null;
+      await ApiService.deletePost(postId);
+
+      final postIndex =
+          posts.value.indexWhere((post) => post['id'].toString() == postId);
+      if (postIndex != -1) {
+        posts.value = [
+          ...posts.value.sublist(0, postIndex),
+          ...posts.value.sublist(postIndex + 1),
+        ];
+      }
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
+  }
+
+  static Future<void> editComment(
+      String postId, String commentId, String newContent) async {
+    try {
+      error = null;
+      final updatedComment = await ApiService.updateComment(
+        id: commentId,
+        comment: newContent,
+      );
+
+      final postIndex =
+          posts.value.indexWhere((post) => post['id'].toString() == postId);
+      if (postIndex != -1) {
+        final post = posts.value[postIndex];
+        final comments =
+            List<Map<String, dynamic>>.from(post['comments'] ?? []);
+        final commentIndex = comments
+            .indexWhere((comment) => comment['id'].toString() == commentId);
+
+        if (commentIndex != -1) {
+          comments[commentIndex] = updatedComment;
+          posts.value = [
+            ...posts.value.sublist(0, postIndex),
+            {...post, 'comments': comments},
+            ...posts.value.sublist(postIndex + 1),
+          ];
+        }
+      }
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
+  }
+
+  static Future<void> deleteComment(String postId, String commentId) async {
+    try {
+      error = null;
+      await ApiService.deleteComment(commentId);
+
+      final postIndex =
+          posts.value.indexWhere((post) => post['id'].toString() == postId);
+      if (postIndex != -1) {
+        final post = posts.value[postIndex];
+        final comments =
+            List<Map<String, dynamic>>.from(post['comments'] ?? []);
+        comments
+            .removeWhere((comment) => comment['id'].toString() == commentId);
+
+        posts.value = [
+          ...posts.value.sublist(0, postIndex),
+          {...post, 'comments': comments, 'comment_count': comments.length},
+          ...posts.value.sublist(postIndex + 1),
+        ];
+      }
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
+  }
+
+  static Future<void> editPost(String postId, String newContent, List<String> list,
+      {String? imagePath}) async {
+    try {
+      error = null;
+      final updatedPost = await ApiService.updatePost(
+        id: postId,
+        content: newContent,
+        imagePath: imagePath,
+      );
+
+      final postIndex =
+          posts.value.indexWhere((post) => post['id'].toString() == postId);
+      if (postIndex != -1) {
+        posts.value = [
+          ...posts.value.sublist(0, postIndex),
+          updatedPost,
+          ...posts.value.sublist(postIndex + 1),
+        ];
+      }
+    } catch (e) {
+      error = e.toString();
+      throw Exception(e);
+    }
   }
 }

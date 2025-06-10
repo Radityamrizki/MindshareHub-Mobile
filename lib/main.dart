@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'home_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -16,7 +27,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF7C3AED)),
         fontFamily: 'Poppins',
       ),
-      home: const LoginPage(),
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          return auth.isAuthenticated ? const HomePage() : const LoginPage();
+        },
+      ),
     );
   }
 }

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class EditCommentPage extends StatefulWidget {
   final String initialContent;
 
-  const EditCommentPage({Key? key, required this.initialContent}) : super(key: key);
+  const EditCommentPage({Key? key, required this.initialContent})
+      : super(key: key);
 
   @override
   _EditCommentPageState createState() => _EditCommentPageState();
@@ -11,6 +12,7 @@ class EditCommentPage extends StatefulWidget {
 
 class _EditCommentPageState extends State<EditCommentPage> {
   final _controller = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -38,11 +40,34 @@ class _EditCommentPageState extends State<EditCommentPage> {
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, _controller.text);
-              },
-              child: const Text('Simpan Perubahan'),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        if (_controller.text.trim().isNotEmpty) {
+                          Navigator.pop(context, _controller.text.trim());
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Simpan Perubahan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'notification_page.dart';
 import 'home_page.dart';
+import 'repositories/diary_repository.dart';
 // import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 class DiaryEntry {
@@ -18,16 +19,28 @@ class DiaryPage extends StatefulWidget {
 
 class _DiaryPageState extends State<DiaryPage> {
   int _selectedIndex = 3; // Set to 3 since this is the diary tab
-  List<DiaryEntry> diaryList = [
-    DiaryEntry(title: 'Liburan ke Bali', content: 'Hari yang sangat seru di pantai Kuta bersama teman-teman!'),
-    DiaryEntry(title: 'Belajar Flutter', content: 'Hari ini aku belajar membuat aplikasi diary dengan Flutter.'),
-    DiaryEntry(title: 'Makan Enak', content: 'Makan bakso di warung langganan, rasanya mantap!'),
-    DiaryEntry(title: 'Nonton Film', content: 'Nonton film favorit di bioskop bareng keluarga.'),
-  ];
   final TextEditingController _contentController = TextEditingController();
-  final TextEditingController _titleController = TextEditingController(text: 'Your Diary');
-
+  final TextEditingController _titleController =
+      TextEditingController(text: 'Your Diary');
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDiaries();
+  }
+
+  Future<void> _loadDiaries() async {
+    try {
+      await DiaryRepository.fetchDiaries();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading diaries: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -36,23 +49,39 @@ class _DiaryPageState extends State<DiaryPage> {
     super.dispose();
   }
 
-  void _addDiary(String title, String content) {
-    setState(() {
-      diaryList.insert(0, DiaryEntry(title: title, content: content));
+  Future<void> _addDiary(String title, String content) async {
+    try {
+      await DiaryRepository.addDiary(
+        title: title,
+        content: content,
+      );
       _contentController.clear();
       _titleController.text = 'Title';
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding diary: $e')),
+        );
+      }
+    }
   }
 
-  void _deleteDiary(int index) {
-    setState(() {
-      diaryList.removeAt(index);
-    });
+  Future<void> _deleteDiary(String id) async {
+    try {
+      await DiaryRepository.deleteDiary(id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting diary: $e')),
+        );
+      }
+    }
   }
 
   void _onItemTapped(int index) {
-    if (index == _selectedIndex) return; // Don't do anything if tapping current tab
-    
+    if (index == _selectedIndex)
+      return; // Don't do anything if tapping current tab
+
     switch (index) {
       case 0:
         Navigator.pushReplacement(
@@ -88,7 +117,10 @@ class _DiaryPageState extends State<DiaryPage> {
         children: [
           const Text(
             'Isi Diary',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF7B1FA2)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF7B1FA2)),
           ),
           const SizedBox(height: 8),
           Expanded(
@@ -160,12 +192,14 @@ class _DiaryPageState extends State<DiaryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: 24, left: 8, right: 24, bottom: 8),
+                    padding: const EdgeInsets.only(
+                        top: 24, left: 8, right: 24, bottom: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 24),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: Colors.black, size: 24),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
@@ -182,51 +216,70 @@ class _DiaryPageState extends State<DiaryPage> {
                       ],
                     ),
                   ),
-                  const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
+                  const Divider(
+                      height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
                   Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-                      itemCount: diaryList.length,
-                      itemBuilder: (context, index) {
-                        final entry = diaryList[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          alignment: Alignment.centerLeft,
-                          child: Material(
-                            color: const Color(0xFFF5EFFF),
-                            borderRadius: BorderRadius.circular(16),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () async {
-                                final deleted = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DiaryDetailPage(
-                                      entry: entry,
-                                      onDelete: () {
-                                        Navigator.pop(context, true);
-                                      },
+                    child: ValueListenableBuilder<List<Map<String, dynamic>>>(
+                      valueListenable: DiaryRepository.diaries,
+                      builder: (context, diaries, _) {
+                        if (diaries.isEmpty) {
+                          return const Center(
+                            child: Text('No diaries yet'),
+                          );
+                        }
+                        return RefreshIndicator(
+                          onRefresh: _loadDiaries,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 24, horizontal: 24),
+                            itemCount: diaries.length,
+                            itemBuilder: (context, index) {
+                              final diary = diaries[index];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                alignment: Alignment.centerLeft,
+                                child: Material(
+                                  color: const Color(0xFFF5EFFF),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () async {
+                                      final deleted = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DiaryDetailPage(
+                                            diary: diary,
+                                            onDelete: () async {
+                                              await _deleteDiary(
+                                                  diary['id'].toString());
+                                              Navigator.pop(context, true);
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                      if (deleted == true) {
+                                        await _loadDiaries();
+                                      }
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10, horizontal: 18),
+                                      child: Text(
+                                        diary['title'].length > 30
+                                            ? diary['title'].substring(0, 30) +
+                                                '...'
+                                            : diary['title'],
+                                        style: const TextStyle(
+                                          color: Color(0xFF22223B),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                );
-                                if (deleted == true) {
-                                  _deleteDiary(index);
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
-                                child: Text(
-                                  entry.title.length > 30
-                                      ? entry.title.substring(0, 30) + '...'
-                                      : entry.title,
-                                  style: const TextStyle(
-                                    color: Color(0xFF22223B),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         );
                       },
@@ -245,33 +298,38 @@ class _DiaryPageState extends State<DiaryPage> {
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: _selectedIndex == 3 ? FloatingActionButton(
-        backgroundColor: const Color(0xFF7B1FA2),
-        shape: const CircleBorder(),
-        onPressed: () {
-          if (_contentController.text.trim().isNotEmpty && _titleController.text.trim().isNotEmpty) {
-            _addDiary(_titleController.text.trim(), _contentController.text.trim());
-          }
-        },
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Icon(Icons.edit_note, color: Colors.white, size: 28),
-            Positioned(
-              right: 6,
-              bottom: 6,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(1.5),
-                child: const Icon(Icons.add, size: 14, color: Color(0xFF7B1FA2)),
+      floatingActionButton: _selectedIndex == 3
+          ? FloatingActionButton(
+              backgroundColor: const Color(0xFF7B1FA2),
+              shape: const CircleBorder(),
+              onPressed: () {
+                if (_contentController.text.trim().isNotEmpty &&
+                    _titleController.text.trim().isNotEmpty) {
+                  _addDiary(_titleController.text.trim(),
+                      _contentController.text.trim());
+                }
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(Icons.edit_note, color: Colors.white, size: 28),
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(1.5),
+                      child: const Icon(Icons.add,
+                          size: 14, color: Color(0xFF7B1FA2)),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-      ) : null,
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -321,9 +379,10 @@ class _DiaryPageState extends State<DiaryPage> {
 }
 
 class DiaryDetailPage extends StatelessWidget {
-  final DiaryEntry entry;
+  final Map<String, dynamic> diary;
   final VoidCallback onDelete;
-  const DiaryDetailPage({super.key, required this.entry, required this.onDelete});
+  const DiaryDetailPage(
+      {super.key, required this.diary, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -334,8 +393,9 @@ class DiaryDetailPage extends StatelessWidget {
         elevation: 0.5,
         iconTheme: const IconThemeData(color: Color(0xFF7B1FA2)),
         title: Text(
-          entry.title,
-          style: const TextStyle(color: Color(0xFF7B1FA2), fontWeight: FontWeight.bold),
+          diary['title'],
+          style: const TextStyle(
+              color: Color(0xFF7B1FA2), fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -357,7 +417,8 @@ class DiaryDetailPage extends StatelessWidget {
                         Navigator.pop(ctx);
                         onDelete();
                       },
-                      child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                      child: const Text('Hapus',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -371,9 +432,8 @@ class DiaryDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Judul diary
             Text(
-              entry.title,
+              diary['title'],
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -384,7 +444,7 @@ class DiaryDetailPage extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 child: Text(
-                  entry.content,
+                  diary['content'],
                   style: const TextStyle(
                     fontSize: 18,
                     color: Color(0xFF6B7280),
