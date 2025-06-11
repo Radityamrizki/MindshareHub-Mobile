@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'notification_page.dart';
 import 'home_page.dart';
 import 'repositories/diary_repository.dart';
+import 'search_page.dart';
+import 'settings_page.dart';
 // import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 
 class DiaryEntry {
@@ -34,11 +36,8 @@ class _DiaryPageState extends State<DiaryPage> {
     try {
       await DiaryRepository.fetchDiaries();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading diaries: $e')),
-        );
-      }
+      // Silently handle error
+      print('Error loading diaries: $e');
     }
   }
 
@@ -58,11 +57,8 @@ class _DiaryPageState extends State<DiaryPage> {
       _contentController.clear();
       _titleController.text = 'Title';
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error adding diary: $e')),
-        );
-      }
+      // Silently handle error
+      print('Error adding diary: $e');
     }
   }
 
@@ -70,11 +66,8 @@ class _DiaryPageState extends State<DiaryPage> {
     try {
       await DiaryRepository.deleteDiary(id);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting diary: $e')),
-        );
-      }
+      // Silently handle error
+      print('Error deleting diary: $e');
     }
   }
 
@@ -339,20 +332,34 @@ class _DiaryPageState extends State<DiaryPage> {
         showUnselectedLabels: false,
         currentIndex: 3,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          } else if (index == 1) {
-            // Search page - TODO: Implement when available
-          } else if (index == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const NotificationPage()),
-            );
-          } else if (index == 3) {
-            // Already on diary page
+          if (index == 3) return;
+
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const SearchPage()),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const NotificationPage()),
+              );
+              break;
+            case 4:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+              break;
           }
         },
         items: const [
@@ -371,6 +378,10 @@ class _DiaryPageState extends State<DiaryPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
             label: 'Diary',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),

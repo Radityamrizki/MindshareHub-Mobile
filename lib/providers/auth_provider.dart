@@ -48,4 +48,14 @@ class AuthProvider extends ChangeNotifier {
     await ApiService.init();
     // You can add additional logic here to check token validity if needed
   }
+
+  void setUser(Map<String, dynamic> user) {
+    _user = user;
+    notifyListeners();
+  }
+
+  void clearUser() {
+    _user = null;
+    notifyListeners();
+  }
 }

@@ -8,6 +8,16 @@ import 'repositories/post_repository.dart';
 import 'providers/auth_provider.dart';
 import 'notification_page.dart';
 import 'diary_page.dart';
+import 'utils/date_formatter.dart';
+import 'search_page.dart';
+import 'settings_page.dart';
+
+const kPrimaryColor = Color(0xFF7C3AED);
+const kBackgroundColor = Colors.white;
+const kTextColor = Color(0xFF22223B);
+const kGreyColor = Color(0xFF6B7280);
+const kCardColor = Color(0xFFF5F5F5);
+const kDefaultPadding = 16.0;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -103,21 +113,21 @@ class _HomePageState extends State<HomePage> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: kBackgroundColor,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: kBackgroundColor,
           elevation: 0,
           title: const Text(
             'Home',
             style: TextStyle(
-              color: Colors.black,
+              color: kTextColor,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
           ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 16.0),
+              padding: const EdgeInsets.only(right: kDefaultPadding),
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -138,7 +148,7 @@ class _HomePageState extends State<HomePage> {
                           currentUser['profile_picture'].isEmpty
                       ? const Icon(Icons.person, color: Colors.white)
                       : null,
-                  backgroundColor: const Color(0xFF7C3AED),
+                  backgroundColor: kPrimaryColor,
                 ),
               ),
             ),
@@ -150,25 +160,29 @@ class _HomePageState extends State<HomePage> {
           builder: (context, posts, _) {
             if (posts.isEmpty) {
               return const Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
+                ),
               );
             }
             return RefreshIndicator(
+              color: kPrimaryColor,
               onRefresh: _loadPosts,
               child: ListView.builder(
-                padding: EdgeInsets.zero,
+                padding:
+                    const EdgeInsets.symmetric(vertical: kDefaultPadding / 2),
                 itemCount: posts.length,
                 itemBuilder: (context, index) {
                   final post = posts[index];
                   final isMine = post['user']['id'].toString() ==
                       currentUser['id'].toString();
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: const EdgeInsets.only(bottom: kDefaultPadding),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: kBackgroundColor,
                       border: Border(
                         bottom: BorderSide(
-                          color: Colors.grey[300]!,
+                          color: Colors.grey[200]!,
                           width: 1,
                         ),
                       ),
@@ -177,13 +191,13 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(
-                              left: 16, right: 16, top: 16),
+                          padding: const EdgeInsets.all(kDefaultPadding),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               CircleAvatar(
                                 radius: 20,
-                                backgroundColor: const Color(0xFF7C3AED),
+                                backgroundColor: kPrimaryColor,
                                 child: post['user']?['profile_picture'] != null
                                     ? ClipOval(
                                         child: Image.network(
@@ -211,32 +225,32 @@ class _HomePageState extends State<HomePage> {
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
+                                        color: kTextColor,
                                       ),
                                     ),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '@${post['user']['username'] ?? ''}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          post['created_at'] ?? '',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '@${post['user']['username'] ?? ''}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: kPrimaryColor,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      getRelativeTime(post['created_at'] ?? ''),
+                                      style: TextStyle(
+                                        color: kGreyColor,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
                               PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_horiz),
+                                icon: const Icon(Icons.more_horiz,
+                                    color: kGreyColor),
                                 onSelected: (value) async {
                                   if (value == 'edit' && isMine) {
                                     Navigator.push(
@@ -314,20 +328,28 @@ class _HomePageState extends State<HomePage> {
                         ),
                         if (post['content'] != null)
                           Padding(
-                            padding: const EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                              top: 12,
-                              bottom: 12,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: kDefaultPadding,
+                              vertical: kDefaultPadding / 2,
                             ),
-                            child: Text(post['content']!),
+                            child: Text(
+                              post['content']!,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: kTextColor,
+                              ),
+                            ),
                           ),
                         if (post['image_path'] != null)
                           Container(
                             width: double.infinity,
                             height: 300,
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: kDefaultPadding,
+                              vertical: kDefaultPadding / 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: Colors.grey[200],
+                              color: kCardColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: ClipRRect(
@@ -340,7 +362,7 @@ class _HomePageState extends State<HomePage> {
                                     child: Icon(
                                       Icons.image,
                                       size: 50,
-                                      color: Colors.grey,
+                                      color: kGreyColor,
                                     ),
                                   );
                                 },
@@ -348,46 +370,59 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 12,
-                            bottom: 12,
-                          ),
+                          padding: const EdgeInsets.all(kDefaultPadding),
                           child: Row(
                             children: [
                               GestureDetector(
                                 onTap: () async {
                                   try {
+                                    setState(() {
+                                      // Optimistically update UI
+                                      final currentLikes =
+                                          post['likes_count'] ?? 0;
+                                      final isCurrentlyLiked =
+                                          post['is_liked'] ?? false;
+                                      post['is_liked'] = !isCurrentlyLiked;
+                                      post['likes_count'] = isCurrentlyLiked
+                                          ? currentLikes - 1
+                                          : currentLikes + 1;
+                                    });
+
                                     await PostRepository.toggleLike(
-                                        post['id'].toString());
+                                      post['id'].toString(),
+                                    );
                                   } catch (e) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                'Error toggling like: $e')),
-                                      );
+                                      setState(() {
+                                        // Revert optimistic update on error
+                                        final currentLikes =
+                                            post['likes_count'] ?? 0;
+                                        final isCurrentlyLiked =
+                                            post['is_liked'] ?? false;
+                                        post['is_liked'] = !isCurrentlyLiked;
+                                        post['likes_count'] = isCurrentlyLiked
+                                            ? currentLikes - 1
+                                            : currentLikes + 1;
+                                      });
                                     }
                                   }
                                 },
                                 child: Row(
                                   children: [
                                     Icon(
-                                      post['is_liked']
+                                      post['is_liked'] ?? false
                                           ? Icons.favorite
                                           : Icons.favorite_border,
                                       size: 20,
-                                      color: post['is_liked']
+                                      color: post['is_liked'] ?? false
                                           ? Colors.red
-                                          : Colors.grey[600],
+                                          : kGreyColor,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${post['likes_count'] ?? 0}',
                                       style: TextStyle(
-                                        color: Colors.grey[600],
+                                        color: kGreyColor,
                                       ),
                                     ),
                                   ],
@@ -409,13 +444,13 @@ class _HomePageState extends State<HomePage> {
                                     Icon(
                                       Icons.mode_comment_outlined,
                                       size: 20,
-                                      color: Colors.grey[600],
+                                      color: kGreyColor,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${post['total_comments'] ?? 0}',
                                       style: TextStyle(
-                                        color: Colors.grey[600],
+                                        color: kGreyColor,
                                       ),
                                     ),
                                   ],
@@ -452,24 +487,24 @@ class _HomePageState extends State<HomePage> {
                       );
                       await _loadPosts();
                     } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error creating post: $e')),
-                        );
-                      }
+                      // Silently handle error and continue
+                      print('Error creating post: $e');
+                      await _loadPosts(); // Still try to refresh posts
                     }
                   },
                 ),
               ),
             );
           },
-          backgroundColor: const Color(0xFF7C3AED),
+          backgroundColor: kPrimaryColor,
           child: const Icon(Icons.add),
         ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF7C3AED),
-          unselectedItemColor: Colors.black54,
+          selectedItemColor: kPrimaryColor,
+          unselectedItemColor: kGreyColor,
+          backgroundColor: kBackgroundColor,
+          elevation: 8,
           showSelectedLabels: false,
           showUnselectedLabels: false,
           currentIndex: _selectedIndex,
@@ -480,20 +515,29 @@ class _HomePageState extends State<HomePage> {
             });
 
             switch (index) {
+              case 1:
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SearchPage()),
+                );
+                break;
               case 2:
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const NotificationPage(),
-                  ),
+                      builder: (context) => const NotificationPage()),
                 );
                 break;
               case 3:
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const DiaryPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const DiaryPage()),
+                );
+                break;
+              case 4:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
                 break;
             }
@@ -514,6 +558,10 @@ class _HomePageState extends State<HomePage> {
             BottomNavigationBarItem(
               icon: Icon(Icons.menu_book),
               label: 'Diary',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Settings',
             ),
           ],
         ),

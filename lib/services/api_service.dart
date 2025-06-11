@@ -141,11 +141,28 @@ class ApiService {
   }
 
   static Future<void> logout() async {
-    await http.post(
-      Uri.parse('$baseUrl/logout'),
-      headers: headers,
-    );
-    await clearToken();
+    try {
+      print('Attempting to logout with token: $_token');
+      final response = await http.post(
+        Uri.parse('$baseUrl/logout'),
+        headers: headers,
+      );
+
+      print('Logout response status: ${response.statusCode}');
+      print('Logout response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('Successfully logged out and destroyed token');
+        await clearToken();
+      } else {
+        throw Exception('Failed to logout: ${response.body}');
+      }
+    } catch (e) {
+      print('Error during logout: $e');
+      // Still clear token locally even if server request fails
+      await clearToken();
+      rethrow;
+    }
   }
 
   // Posts endpoints
@@ -349,7 +366,7 @@ class ApiService {
       }
     } catch (e) {
       print('Error in getDiaries: $e');
-      rethrow;
+      return []; // Return empty list instead of throwing
     }
   }
 
@@ -420,6 +437,100 @@ class ApiService {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to delete diary');
+    }
+  }
+
+  // Search endpoints
+  static Future<List<Map<String, dynamic>>> searchPosts(String query) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/posts/search?q=$query'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to search posts');
+      }
+    } catch (e) {
+      print('Error in searchPosts: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getTrendingTopics() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/trending-topics'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to load trending topics');
+      }
+    } catch (e) {
+      print('Error in getTrendingTopics: $e');
+      rethrow;
+    }
+  }
+
+  // Profile endpoints
+  static Future<Map<String, dynamic>> getUserProfile() async {
+    try {
+      final posts = await getPosts();
+      if (posts.isNotEmpty) {
+        // Get user data from the first post's user info
+        final userData = posts[0]['user'];
+        return {
+          'id': userData['id'],
+          'name': userData['name'],
+          'username': userData['username'],
+          'profile_picture': userData['profile_picture'],
+        };
+      }
+      throw Exception('No user data available');
+    } catch (e) {
+      print('Error in getUserProfile: $e');
+      throw Exception('Failed to load user profile');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserComments() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/comments'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to load user comments');
+      }
+    } catch (e) {
+      print('Error in getUserComments: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getLikedPosts() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/liked-posts'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to load liked posts');
+      }
+    } catch (e) {
+      print('Error in getLikedPosts: $e');
+      rethrow;
     }
   }
 }

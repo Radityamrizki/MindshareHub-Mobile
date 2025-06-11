@@ -3,6 +3,8 @@ import 'home_page.dart';
 import 'diary_page.dart';
 import 'profile_page.dart';
 import 'notification_page.dart';
+import 'search_page.dart';
+import 'settings_page.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -16,7 +18,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-    
+
     switch (index) {
       case 0:
         Navigator.pushReplacement(
@@ -25,13 +27,21 @@ class _NotificationPageState extends State<NotificationPage> {
         );
         break;
       case 1:
-        // Search
-        // TODO: Ganti dengan halaman search jika sudah ada
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const SearchPage()),
+        );
         break;
       case 3:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DiaryPage()),
+        );
+        break;
+      case 4:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SettingsPage()),
         );
         break;
     }
@@ -84,12 +94,14 @@ class _NotificationPageState extends State<NotificationPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 0),
+                  padding: const EdgeInsets.only(
+                      top: 16, left: 16, right: 16, bottom: 0),
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundImage: AssetImage('assets/images/idufitri.png'),
+                        backgroundImage:
+                            AssetImage('assets/images/idufitri.png'),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
@@ -110,7 +122,8 @@ class _NotificationPageState extends State<NotificationPage> {
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 8),
+                  padding:
+                      EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 8),
                   child: Text(
                     'Selamat idul fitri temen temen!',
                     style: TextStyle(fontSize: 15, color: Color(0xFF22223B)),
@@ -129,7 +142,8 @@ class _NotificationPageState extends State<NotificationPage> {
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
+                  padding:
+                      EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
                   child: Text(
                     'SELAMAT HARI RAYA IDUL FITRI',
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
@@ -140,7 +154,8 @@ class _NotificationPageState extends State<NotificationPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Icon(Icons.mode_comment_outlined, size: 20, color: Colors.grey[600]),
+                      Icon(Icons.mode_comment_outlined,
+                          size: 20, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       const Text('7', style: TextStyle(color: Colors.grey)),
                       const SizedBox(width: 16),
@@ -185,6 +200,10 @@ class _NotificationPageState extends State<NotificationPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
             label: 'Diary',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),
