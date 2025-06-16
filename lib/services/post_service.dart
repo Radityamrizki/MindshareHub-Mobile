@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class PostService {
-  static const String baseUrl = 'http://192.168.1.2/api';
+  static const String baseUrl = 'http://192.168.1.4/api';
 
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getToken();
@@ -27,5 +27,4 @@ class PostService {
     throw Exception('Failed to load posts');
   }
 
-  // Add other CRUD methods as needed
 }

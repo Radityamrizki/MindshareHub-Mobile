@@ -193,7 +193,7 @@ class _HomePageState extends State<HomePage> {
                         Padding(
                           padding: const EdgeInsets.all(kDefaultPadding),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               CircleAvatar(
                                 radius: 20,
@@ -217,35 +217,32 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      post['user']['name'] ?? '',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: kTextColor,
+                                child: SizedBox(
+                                  height: 40,
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '@${post['user']['username'] ?? ''}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: kPrimaryColor,
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '@${post['user']['username'] ?? ''}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: kPrimaryColor,
-                                        fontSize: 14,
+                                      Text(
+                                        getRelativeTime(
+                                            post['created_at'] ?? ''),
+                                        style: TextStyle(
+                                          color: kGreyColor,
+                                          fontSize: 12,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      getRelativeTime(post['created_at'] ?? ''),
-                                      style: TextStyle(
-                                        color: kGreyColor,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                               PopupMenuButton<String>(
